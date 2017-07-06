@@ -1,49 +1,72 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
-    <meta charset="utf-8">
-    <title>Find a Route v1.0</title>
-    <style>
-      html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-      }
-      #start_end_point_panel {
-        position: absolute;
-        top: 10px;
-        left: 25%;
-        z-index: 5;
-        background-color: #fff;
-        padding: 5px;
-        border: 1px solid #999;
-        text-align: center;
-        font-family: 'Roboto','sans-serif';
-        line-height: 30px;
-        padding-left: 10px;
-      }
-      #map {
-        height: 100%;
-      }
-      </style>
-  </head>
-  
-<body>
-    <!-- At the top of the page there is a form where user can enter start and end point for required route -->
-    <div id="start_end_point_panel">
-    <b>Start: </b> <!-- route origin -->
-    <input id="start" placeholder="Enter start address"  type="text"></input>
-    <b>End: </b>   <!-- route destination -->
-    <input id="end" placeholder="Enter end address" type="text"></input>
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+	<meta charset="UTF-8">
+	<link rel="stylesheet" href="css/bootstrap.css">
+    <link href="css/style.css" rel="stylesheet" type="text/css" />
+	<script type="text/javascript" src="lib/jquery.js"></script>
+	<script type="text/javascript" src="lib/bootstrap.js"></script>
+	<script type="text/javascript" src="lib/angular.js"></script>
+	<!--script type="text/javascript" src="lib/angular-route.js"></script-->
+	<script src="app/findRouteCtrl.js"></script>
+	<script src="app/saveService.js"></script>
 	
-	<!-- in route details show distance and travel time-->
- 	<div id="route_details"> <br> </div>
-    </div>
-    
-	<div id="map"></div>
-
-    <script>    
+    <title>Route</title>
+	<style>
+       body { background-color:#CCC }
+      #map-outer {  height: 440px; 
+	  				padding: 20px; 
+					border: 2px solid #CCC; 
+					margin-bottom: 20px; 
+					background-color:#FFF }
+	  #map { height: 400px }
+	  @media all and (max-width: 991px) {
+		#map-outer  { height: 650px }
+		}
+    </style>
+</head>
+<body data-ng-controller="findRouteCtrl" data-ng-app="app" >
+   <div class="container">
+   <div id="start_end_point_panel" class="row" >
+	<form class="form-inline" name="commentform">
+		<div class="form-group">
+			<b>Start: </b> <!-- route origin -->
+			<input id="start" placeholder="Enter start address" type="text"  ng-model="start1" ng-change="changeStartEnd()"></input> 
+		</div>
+		<div class="form-group">
+			<b>End: </b>   <!-- route destination -->
+			<input id="end"   placeholder="Enter end address"   type="text"  ng-model="end1" ng-change="changeStartEnd()"></input>
+		</div>
+		<div class="form-group">
+			<button ng-click="saveRoute()" ng-disabled="!readyToSave" title="Save">
+				<a class="btn-xs  glyphicon glyphicon-plus"></a>
+			</button>
+		</div>
+		<div id="route_details" class="form-group"> <br> </div>
+		</form>
+	</div>
+    <div class="row">
+      <div id="map-outer" class="col-md-12">
+		<div class="col-md-4">
+			<table class="table table-hover">
+                <tr class="row">
+                    <th>Start</th>
+                    <th>End</th>
+                     <th></th>
+                </tr>
+                <tr class="row" ng-repeat="item in routes track by $index" ng-click="selectRoute(item)">
+                    <td data-ng-bind="item.start" ></td>
+                    <td data-ng-bind="item.end"></td>
+                    <td>
+                 		<a ng-click="deleteRoute(item)"  class="btn-xs  glyphicon glyphicon-remove"></a>
+                 	</td>
+                </tr>
+            </table>
+		</div>
+        <div id="map" class="col-md-8"></div>
+      </div><!-- /map-outer -->
+</div>
+ <script>    
 	  
       function initMap() {
 	  
@@ -61,7 +84,7 @@
               lng: position.coords.longitude
             };
 
-            infoWindow.setPosition(pos); // mark the geolocation
+            //infoWindow.setPosition(pos); // mark the geolocation
 	        map.setCenter(pos);
           });
         }
@@ -82,7 +105,7 @@
         var directionsDisplay = new google.maps.DirectionsRenderer({map: map});
 		
         // start / end 
-        var onChangeHandler = function() {
+        onChangeHandler = function() {
           calculateAndDisplayRoute( directionsDisplay, directionsService, map, geocoder);
         };
         document.getElementById('start').addEventListener('change', onChangeHandler);
@@ -113,6 +136,7 @@
 				  map: map,
 				  position: results[0].geometry.location
 				});
+				
 			  }
 			});
 			routeDetails = "<br>"; // save one line for routeDetails
@@ -142,18 +166,17 @@
 	
 	 function formatTravelTime(duration) { // in seconds
 		if(duration>=3600) { // hours
-		   return ""+ Math.floor(duration/3600)+"h "+Math.round((duration % 3600)/60)+"m";
+		   return ""+ Math.floor(duration/3600)+"h "+Math.round((duration % 3600)/60)+"min";
 		}
 		if(duration>=60) {  // minutes
-		  return ""+ Math.floor(duration/60)+"m "+(duration % 60)+" sec";
+		  return ""+ Math.floor(duration/60)+"min "+(duration % 60)+" sec";
 		} 
 		return	""+ duration+" sec";
 	 }  
 	 
       
    </script>
-   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD3A7wlYBNQLshvZCdJOzGWFTQ65fx1cvA&libraries=places&callback=initMap" 
+ <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD3A7wlYBNQLshvZCdJOzGWFTQ65fx1cvA&libraries=places&callback=initMap" 
 	 async defer></script>
-	
-  </body>
+</body>
 </html>
