@@ -1,3 +1,109 @@
+   function initMap() {
+	  
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 11,
+          center: {lat: 43.3167, lng: 21.89  } //  nis
+        });
+	    var infoWindow = new google.maps.InfoWindow({map: map});
+
+        // HTML5 geolocation
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(function(position) {
+            var pos = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+
+            //infoWindow.setPosition(pos); // mark the geolocation
+	        map.setCenter(pos);
+          });
+        }
+	  	  
+        // autocomplete for start/end, search to geographical location  
+        new google.maps.places.Autocomplete(
+            /** @type {!HTMLInputElement} */(document.getElementById('start')),  {types: ['geocode']}
+		);
+	 	new google.maps.places.Autocomplete(
+            /** @type {!HTMLInputElement} */(document.getElementById('end')),    {types: ['geocode']}
+		);			
+
+         
+        var directionsService = new google.maps.DirectionsService;
+ 	
+        var geocoder = new google.maps.Geocoder();
+
+        var directionsDisplay = new google.maps.DirectionsRenderer({map: map});
+		
+        // start / end 
+        onChangeHandler = function() {
+          calculateAndDisplayRoute( directionsDisplay, directionsService, map, geocoder);
+        };
+        document.getElementById('start').addEventListener('change', onChangeHandler);
+        document.getElementById('end').addEventListener('change', onChangeHandler);		
+		
+      }
+
+      function calculateAndDisplayRoute(directionsDisplay, directionsService, map, geocoder) {
+		    				
+        directionsService.route({
+          origin: document.getElementById('start').value,
+          destination: document.getElementById('end').value,
+          travelMode: 'DRIVING'
+        }, function(response, status) {
+		  var routeDetails; 
+          if (status === 'OK') {
+		    // show route
+            directionsDisplay.setDirections(response);
+			// calculate distance and travel time
+            routeDetails = calcRouteDetails(response);		
+          } else { 
+		    // no route => show map for start point
+  			var address = document.getElementById('start').value;
+			geocoder.geocode({'address': address}, function(results, status) {
+			  if (status === 'OK') {
+				map.setCenter(results[0].geometry.location);
+				var marker = new google.maps.Marker({
+				  map: map,
+				  position: results[0].geometry.location
+				});
+				
+			  }
+			});
+			routeDetails = "<br>"; // save one line for routeDetails
+          }
+		  document.getElementById('route_details').innerHTML = routeDetails;
+        });
+      }
+
+	  //  distance and travel time
+      function calcRouteDetails(directionResult) {
+        var myRoute = directionResult.routes[0].legs[0];
+		var distance = 0;
+		var duration = 0;		
+        for (var i = 0; i < myRoute.steps.length; i++) {
+		  duration += myRoute.steps[i].duration.value;
+		  distance += myRoute.steps[i].distance.value;		  
+        }
+		return "Distance "+formatDistance(distance)+"; Travel time "+ formatTravelTime(duration);
+     }
+	 
+	 function formatDistance(distance) { // in meter
+	   if(distance<1000) {
+	     return ""+distance+" m";
+	   }
+	   return  ""+Math.round(distance/100)/10+" km";
+	 }
+	
+	 function formatTravelTime(duration) { // in seconds
+		if(duration>=3600) { // hours
+		   return ""+ Math.floor(duration/3600)+"h "+Math.round((duration % 3600)/60)+"min";
+		}
+		if(duration>=60) {  // minutes
+		  return ""+ Math.floor(duration/60)+"min "+(duration % 60)+" sec";
+		} 
+		return	""+ duration+" sec";
+	 }  
+	 
 "use strict";
 
 angular.module('app',['savedata'])
@@ -46,9 +152,7 @@ angular.module('app',['savedata'])
     
      onChangeHandler();
 
-     //alert($("#start").val());
-     //$("#start").val(item.start); // .trigger( "change");
-     //$("#end").val(item.end); // .trigger( "change");
+    
 
   }  
 
@@ -80,15 +184,7 @@ angular.module('app',['savedata'])
   };
   	
 
-  // init
-  /*
-    $scope.routes = [
-					{"id": 0,  "start": "Pirot",     "end": "Nis"},
-          {"id": 3,  "start": "Belgrade",  "end": "Nis"},
-          {"id": 1,  "start": "Kragujevac","end": "Lapovo"},
-          {"id": 2,  "start": "Srpskih Vladara 2,Pirot",  "end": "Srpskih Vladara 112,Pirot"}
-    ];
-*/
+ 
 
     
   $scope.routes =  SaveService.loadData();   
